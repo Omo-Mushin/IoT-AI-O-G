@@ -15,7 +15,7 @@ from sklearn.metrics import mean_squared_error
 # ----------------------
 # 1. Load Production Data
 # ----------------------
-prod_data = pd.read_excel(r'C:\Users\HP\Downloads\Abura 6ST Production.xlsx')
+prod_data = pd.read_excel(r'Production_data.xlsx')
 prod_data['Date'] = pd.to_datetime(prod_data['Date'], format='%Y-%m-%d')
 prod_data = prod_data.sort_values('Date')
 
@@ -23,7 +23,7 @@ prod_data = prod_data.sort_values('Date')
 # 2. Load ESP Monitoring Data
 # ----------------------
 main_df3 = pd.read_excel(
-    r'C:\Users\HP\Documents\NEW_ESP_DATA.xlsx', sheet_name=None
+    r'NEW_ESP_DATA.xlsx', sheet_name=None
 )
 monitor_dfs = list(main_df3.values())
 monitor_df = pd.concat(monitor_dfs, ignore_index=True)
