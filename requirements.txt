@@ -8,3 +8,4 @@ plotly
 jupyter-dash
 gunicorn 
 openpyxl
+streamlit
