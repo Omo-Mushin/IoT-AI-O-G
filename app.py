@@ -70,12 +70,11 @@ def preprocess_esp_data(df):
 # Anomaly Detection
 # ----------------------
 def detect_anomalies(df):
-    # Remove duplicate timestamps
-    df = df.drop_duplicates(subset=['DateTime'])
+    features = df[['Freq (Hz)', 'Current (Amps)', 'Intake Press psi', 'Motor Temp (F)']].dropna()
     
-    # Dynamic n_neighbors calculation
-    min_samples = min(20, len(df) - 1)  # Ensure we don't exceed data size
-    lof = LocalOutlierFactor(n_neighbors=max(2, min_samples), contamination=0.05)
+    # Train multiple anomaly detection models
+    iso = IsolationForest(contamination=0.05, random_state=42)
+    lof = LocalOutlierFactor(n_neighbors=20, contamination=0.05)
     svm = OneClassSVM(nu=0.05)
     
     df['anomaly_iso'] = np.nan
@@ -238,95 +237,54 @@ with tab2:
 with tab3:
     st.header("Anomaly Detection Analysis")
     
-    # Define anomaly_events first
-    anomaly_events = esp_data[esp_data['anomaly_score'] > 0].copy()
-    
     st.subheader("Anomaly Distribution")
     anomaly_counts = esp_data['anomaly_score'].value_counts().sort_index()
+    fig = px.bar(
+        anomaly_counts, 
+        title="Count of Anomalies by Severity Level",
+        labels={'index': 'Anomaly Score', 'value': 'Count'},
+        color=anomaly_counts.index,
+        color_continuous_scale='reds'
+    )
+    st.plotly_chart(fig, use_container_width=True)
     
-    # Create two columns for layout
-    col1, col2 = st.columns(2)
+    st.subheader("Anomaly Events")
+    anomaly_events = esp_data[esp_data['anomaly_score'] > 0]
     
-    with col1:
-        # Pie chart showing anomaly proportion
-        if not anomaly_events.empty:
-            fig = px.pie(
-                names=['Normal', 'Anomalous'],
-                values=[len(esp_data)-len(anomaly_events), len(anomaly_events)],
-                title='Anomaly Proportion',
-                color=['Normal', 'Anomalous'],
-                color_discrete_map={'Normal':'#2ecc71', 'Anomalous':'#e74c3c'}
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("No anomalies detected in the data")
-
-    with col2:
-        # Parameter stats only if anomalies exist
-        if not anomaly_events.empty:
-            param_stats = anomaly_events[['Freq (Hz)', 'Current (Amps)', 
-                                       'Intake Press psi', 'Motor Temp (F)']].mean()
-            fig = px.bar(
-                param_stats,
-                title='Average Values During Anomalies',
-                labels={'index': 'Parameter', 'value': 'Average Value'}
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("No anomaly statistics available")
-
-    
-    # Simplified Timeline Visualization
-    st.subheader("Anomaly Timeline")
     if not anomaly_events.empty:
-        # Create a simplified timeline
-        fig = px.scatter(
-            anomaly_events,
-            x='DateTime',
-            y='anomaly_score',
-            color='anomaly_score',
-            color_continuous_scale='reds',
-            title='Anomaly Severity Over Time',
-            labels={'anomaly_score': 'Severity Level'},
-            height=400
-        )
-        fig.update_layout(
-            yaxis=dict(tickvals=[1, 2, 3], ticktext=['Low', 'Medium', 'High']),
-            xaxis_title='Date',
-            coloraxis_showscale=False
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        col1, col2 = st.columns(2)
+        # with col1:
+        #     fig = px.scatter(
+        #         anomaly_events, x='DateTime', y='Freq (Hz)',
+        #         color='anomaly_score',
+        #         size='anomaly_score',
+        #         title='Anomalies in Frequency',
+        #         color_continuous_scale='reds',
+        #         range_color=[1, 3]
+        #     )
+        #     st.plotly_chart(fig, use_container_width=True)
         
-        # Top Anomalies Table
-        st.subheader("Most Severe Anomalies")
+        with col2:
+            fig = px.scatter(
+                anomaly_events, x='DateTime', y='Motor Temp (F)',
+                color='anomaly_score',
+                size='anomaly_score',
+                title='Anomalies in Motor Temperature',
+                color_continuous_scale='reds',
+                range_color=[1, 3]
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        
+        st.subheader("Detailed Anomaly Records")
         st.dataframe(
-            anomaly_events.nlargest(5, 'anomaly_score')[
-                ['DateTime', 'Freq (Hz)', 'Current (Amps)',
-                 'Motor Temp (F)', 'anomaly_score']
-            ].style.background_gradient(cmap='Reds', subset=['anomaly_score']),
-            height=200,
-            use_container_width=True
+            anomaly_events[
+                ['DateTime', 'Freq (Hz)', 'Current (Amps)', 
+                 'Intake Press psi', 'Motor Temp (F)', 'anomaly_score']
+            ].sort_values('DateTime', ascending=False),
+            height=300
         )
     else:
         st.success("No anomalies detected in the dataset")
-
-    # Parameter Distribution Comparison
-    st.subheader("Parameter Distribution: Normal vs Anomalous")
-    selected_param = st.selectbox(
-        "Select Parameter to Compare",
-        ['Freq (Hz)', 'Current (Amps)', 'Intake Press psi', 'Motor Temp (F)']
-    )
-    
-    fig = px.box(
-        esp_data,
-        x='anomaly_score'.gt(0),
-        y=selected_param,
-        color='anomaly_score'.gt(0),
-        color_discrete_map={True: '#e74c3c', False: '#2ecc71'},
-        labels={'x': 'Anomaly Status', 'y': selected_param},
-        title=f'{selected_param} Distribution Comparison'
-    )
-    st.plotly_chart(fig, use_container_width=True)
 
 # Footer
 st.markdown("---")
