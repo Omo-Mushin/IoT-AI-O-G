@@ -248,11 +248,11 @@ with tab3:
     )
     st.plotly_chart(fig, use_container_width=True)
     
-    # st.subheader("Anomaly Events")
-    # anomaly_events = esp_data[esp_data['anomaly_score'] > 0]
+    st.subheader("Anomaly Events")
+    anomaly_events = esp_data[esp_data['anomaly_score'] > 0]
     
-    # if not anomaly_events.empty:
-    #     col1, col2 = st.columns(2)
+    if not anomaly_events.empty:
+        col1, col2 = st.columns(2)
         # with col1:
         #     fig = px.scatter(
         #         anomaly_events, x='DateTime', y='Freq (Hz)',
