@@ -137,7 +137,7 @@ esp_data = detect_anomalies(esp_data)
 esp_data, temp_model = train_predictive_models(esp_data)
 
 # Get last recorded values
-last_reading = esp_data.iloc[-1]
+last_reading = esp_data.iloc[100]
 has_anomaly = last_reading['anomaly_score'] >= 2
 
 # ----------------------
