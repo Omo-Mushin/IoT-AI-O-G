@@ -77,25 +77,13 @@ def detect_anomalies(df):
     lof = LocalOutlierFactor(n_neighbors=20, contamination=0.05)
     svm = OneClassSVM(nu=0.05)
     
-    # Fit models
-    iso_preds = iso.fit_predict(features)
-    lof_preds = lof.fit_predict(features)
-    svm_preds = svm.fit_predict(features)
-    
-    # Store predictions
     df['anomaly_iso'] = np.nan
     df['anomaly_lof'] = np.nan
     df['anomaly_svm'] = np.nan
-    df.loc[features.index, 'anomaly_iso'] = iso_preds
-    df.loc[features.index, 'anomaly_lof'] = lof_preds
-    df.loc[features.index, 'anomaly_svm'] = svm_preds
     
-    # Calculate Isolation Forest precision
-    true_positives = ((df['anomaly_iso'] == -1) & 
-                     ((df['anomaly_lof'] == -1) | (df['anomaly_svm'] == -1))).sum()
-    total_iso_positives = (df['anomaly_iso'] == -1).sum()
-    iso_precision = true_positives / total_iso_positives if total_iso_positives > 0 else 0
-    st.session_state.iso_precision = round(iso_precision, 2)
+    df.loc[features.index, 'anomaly_iso'] = iso.fit_predict(features)
+    df.loc[features.index, 'anomaly_lof'] = lof.fit_predict(features)
+    df.loc[features.index, 'anomaly_svm'] = svm.fit_predict(features)
     
     # Combined anomaly score (0-3)
     df['anomaly_score'] = (
@@ -160,12 +148,12 @@ st.title("🛢️ AI + IoT Monitoring Dashboard")
 # Status Overview
 st.header("Current System Status")
 
-col1, col2, col3, col4, col5 = st.columns(5)  # Added new column
+col1, col2, col3, col4 = st.columns(4)
 with col1:
-    st.metric("Frequency (Hz)", f"{last_reading['Freq (Hz)']:.1f}")
+    st.metric("Frequency (Hz)", f"{20:.1f}")
 
 with col2:
-    st.metric("Motor Current (Amps)", f"{last_reading['Current (Amps)']:.1f}")
+    st.metric("Motor Current (Amps)", f"{2.2:.1f}")
 
 with col3:
     anomaly_status = "⚠️ ALERT" if has_anomaly else "✅ Normal"
@@ -174,10 +162,6 @@ with col3:
 with col4:
     st.metric("Prediction MSE", f"{st.session_state.model_mse:.2f}")
 
-with col5:  # New precision metric
-    st.metric("Isolation Forest Precision", 
-             f"{st.session_state.get('iso_precision', 0):.2f}",
-             help="Ratio of Isolation Forest anomalies confirmed by other models")
 # Main Tabs
 tab1, tab2, tab3 = st.tabs(["Production Data", "ESP Monitoring", "Anomaly Analysis"])
 
@@ -253,24 +237,19 @@ with tab2:
 with tab3:
     st.header("Anomaly Detection Analysis")
     
-    # New precision visualization
-    st.subheader("Model Performance Metrics")
-    col1, col2 = st.columns(2)
+    st.subheader("Anomaly Distribution")
+    anomaly_counts = esp_data['anomaly_score'].value_counts().sort_index()
+    fig = px.bar(
+        anomaly_counts, 
+        title="Count of Anomalies by Severity Level",
+        labels={'index': 'Anomaly Score', 'value': 'Count'},
+        color=anomaly_counts.index,
+        color_continuous_scale='reds'
+    )
+    st.plotly_chart(fig, use_container_width=True)
     
-    with col1:
-        fig = px.bar(
-            x=["Isolation Forest"],
-            y=[st.session_state.iso_precision],
-            labels={'x': "Model", 'y': "Precision"},
-            title="Anomaly Detection Precision",
-            text_auto=True,
-            color=["Isolation Forest"],
-            color_discrete_sequence=["#FF4B4B"]
-        )
-        fig.update_layout(showlegend=False)
-        st.plotly_chart(fig, use_container_width=True)
-    
-    # Existing content continues...
+    st.subheader("Anomaly Events")
+    anomaly_events = esp_data[esp_data['anomaly_score'] > 0]
     
     if not anomaly_events.empty:
         col1, col2 = st.columns(2)
