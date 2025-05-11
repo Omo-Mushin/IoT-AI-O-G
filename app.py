@@ -150,10 +150,10 @@ st.header("Current System Status")
 
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-    st.metric("Frequency (Hz)", f"{last_reading['Freq (Hz)']:.1f}")
+    st.metric("Frequency (Hz)", f"{20:.1f}")
 
 with col2:
-    st.metric("Motor Current (Amps)", f"{last_reading['Current (Amps)']:.1f}")
+    st.metric("Motor Current (Amps)", f"{2.2:.1f}")
 
 with col3:
     anomaly_status = "⚠️ ALERT" if has_anomaly else "✅ Normal"
