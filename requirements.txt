@@ -9,3 +9,4 @@ jupyter-dash
 gunicorn 
 openpyxl
 streamlit
+lifelines
