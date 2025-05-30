@@ -9,4 +9,7 @@ jupyter-dash
 gunicorn 
 openpyxl
 streamlit
+plotly-express
 lifelines
+statsmodels
+prophet
